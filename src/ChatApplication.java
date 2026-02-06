@@ -10,7 +10,7 @@ public class ChatApplication extends JFrame {
 
     public static ArrayList<Message> sharedMessages = new ArrayList<>();
 
-    public static ArrayList<chatWindow> allChatWindows = new ArrayList<>();
+    public static ArrayList<ChatWindow> allChatWindows = new ArrayList<>();
 
     private static final Color PRIMARY_COLOR = new Color(41, 128, 185);
     private static final Color SECONDARY_COLOR = new Color(52, 152, 219);
@@ -129,5 +129,183 @@ public class ChatApplication extends JFrame {
         for (ChatWindow window : allChatWindows) {
             window.updateDisplay();
         }
+    }
+
+    public static void main(String[] args) {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        SwingUtilities.invokeLater(() -> new ChatApplication().setVisible(true));
+    }
+}
+
+// Message Class To Store Message Details
+class Message {
+    private String senderName;
+    private String message;
+    private String timeStamp;
+
+    Message(String senderName, String message) {
+        this.senderName = senderName;
+        this.message = message;
+        this.timeStamp = java.time.LocalTime.now().format(
+                java.time.format.DateTimeFormatter.ofPattern("hh:mm")
+        );
+    }
+
+    public String getSenderName() {
+        return senderName;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public String getTimeStamp() {
+        return timeStamp;
+    }
+}
+
+// Chat Window Class For Each Participant
+class ChatWindow extends JFrame {
+    private String participantName;
+    private JTextArea messageArea;
+    private JTextField messageField;
+    private JButton sendButton;
+
+    private static final Color PRIMARY_COLOR = new Color(41, 128, 185);
+    private static final Color SECONDARY_COLOR = new Color(52, 152, 219);
+    private static final Color BACKGROUND_COLOR = new Color(236, 240, 241);
+    private static final Color CHAT_BACKGROUND = new Color(255, 255, 255);
+    private static final Color SENDER_COLOR = new Color(46, 204, 113);
+
+    ChatWindow(String participantName) {
+        this.participantName = participantName;
+
+        setTitle ("Chat With " + participantName);
+        setSize(500,700);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation (JFrame.DISPOSE_ON_CLOSE);
+
+        // Main Panel
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(BACKGROUND_COLOR);
+
+        // Header Panel
+        JPanel headerPanel = new JPanel (new BorderLayout());
+        headerPanel.setBackground(PRIMARY_COLOR);
+        headerPanel.setBorder (new EmptyBorder(15,20,15,20));
+
+        // HeaderPanel BorderLayout Ekata West Side Ekata Add Kara 'Typing' Label Eka
+        JLabel headerLabel = new JLabel ("Typing : "+ participantName);
+        headerLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        headerLabel.setForeground(Color.WHITE);
+        headerPanel.add(headerLabel, BorderLayout.WEST);
+
+        // HeaderPanel BorderLayout Ekata East Side Ekata Add Kara 'Online' Label Eka
+        JLabel onlineLabel = new JLabel ("* Online");
+        onlineLabel.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        onlineLabel.setForeground(new Color (46,204,113));
+        headerPanel.add(onlineLabel, BorderLayout.EAST);
+
+        mainPanel.add (headerPanel, BorderLayout.NORTH);
+
+        // Chat Display Area
+        messageArea = new JTextArea();
+        messageArea.setEditable(false);
+        messageArea.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        messageArea.setLineWrap(true);
+        messageArea.setWrapStyleWord(true);
+        messageArea.setBackground(CHAT_BACKGROUND);
+        messageArea.setBorder(new EmptyBorder(20,20,20,20));
+
+        JScrollPane scrollPane = new JScrollPane(messageArea);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+
+        mainPanel.add (scrollPane, BorderLayout.CENTER);
+
+        // Input Area
+        JPanel inputPanel = new JPanel(new BorderLayout(10,0));
+        inputPanel.setBackground(BACKGROUND_COLOR);
+        inputPanel.setBorder(new EmptyBorder(15,15,15,15));
+
+        messageField = new JTextField();
+        messageField.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        messageField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(189,195,199),2),
+                BorderFactory.createEmptyBorder(10,15,10,15)
+        ));
+
+        sendButton = new JButton ("Send =>");
+        sendButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        sendButton.setBackground(PRIMARY_COLOR);
+        sendButton.setForeground(Color.WHITE);
+        sendButton.setFocusPainted(false);
+        sendButton.setBorderPainted(false);
+        sendButton.setPreferredSize(new Dimension(100,45));
+        sendButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // Hover Effect
+        sendButton.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                sendButton.setBackground(SECONDARY_COLOR);
+            }
+            public void mouseExited(MouseEvent e) {
+                sendButton.setBackground(PRIMARY_COLOR);
+            }
+        });
+
+        inputPanel.add (messageField,BorderLayout.CENTER);
+        inputPanel.add (sendButton,BorderLayout.EAST);
+
+        mainPanel.add (inputPanel,BorderLayout.SOUTH);
+
+        // Send Messages
+        ActionListener sendMessage = e -> {
+            String messageText = messageField.getText().trim();
+
+            if (!messageText.isEmpty()) {
+                Message messaage = new Message (participantName, messageText);
+                ChatApplication.broadcastMessage(messaage);
+
+                messageField.setText("");
+                messageField.requestFocus();
+            }
+        };
+
+        sendButton.addActionListener(sendMessage);
+        messageField.addActionListener(sendMessage);
+
+        add (mainPanel);
+
+        // Update The Display With Existing Messages
+        updateDisplay();
+    }
+
+    public void updateDisplay () {
+        messageArea.setText("");
+
+        for (Message message : ChatApplication.sharedMessages) {
+            String formattedMessage;
+
+            if (message.getSenderName().equals(participantName)) {
+
+                formattedMessage = String.format("[%s] You : %s\n\n",
+                        message.getTimeStamp(), message.getMessage());
+
+            } else {
+                formattedMessage = String.format ("[%s] %s : %s\n\n",
+                        message.getTimeStamp(), message.getSenderName(), message.getMessage());
+            }
+
+            messageArea.append(formattedMessage);
+        }
+
+        // Auto-Scroll To Bottom
+        messageArea.setCaretPosition (messageArea.getDocument().getLength());
     }
 }
