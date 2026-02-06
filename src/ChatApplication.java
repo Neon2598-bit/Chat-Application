@@ -27,7 +27,6 @@ public class ChatApplication extends JFrame {
         //Main Panel
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout(10,10)); // 10px Margins
-        add(mainPanel);
         mainPanel.setBackground(BACKGROUND_COLOR);
         mainPanel.setBorder(new EmptyBorder(20,20,20,20)); // 20px Margins
 
@@ -120,7 +119,7 @@ public class ChatApplication extends JFrame {
         addButton.addActionListener(addParticipantAction);
         nameField.addActionListener(addParticipantAction);
 
-        add(mainPanel);
+        add (mainPanel);
     }
 
     // Method To Broadcast Message To All ChatWindows
